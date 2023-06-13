@@ -22,24 +22,24 @@ namespace RectUIParticle
         public Color color;
         public Vector3 spawnPosition;
         public Vector3 rectPosition;
-        public Vector3 disapearPosition;
+        public Vector3 sinkPosition;
         public float randomOffset;
         public float speed;
         public Vector3 amplitude;
         public float frequency;
         public float fadeInDuration;
         public float fadeOutDuration;
-        public float disapearDuration;
+        public float sinkDuration;
         public string edgeName;
 
-        public Vector3 scale;
+        public Vector3 size;
     }
 
     public class Particle
     {
         public GameObject gameObject;
         public Vector3 spawnPosition;
-        public Vector3 disapearPosition;
+        public Vector3 sinkPosition;
         public Vector3 rectPosition;
         private Vector3 motionDelta;
         private Vector3 currentPosition;
@@ -60,6 +60,7 @@ namespace RectUIParticle
 
 
         private float floatingDuration = 0f;
+        private float animaDuration = 0f;
 
 
         public Coroutine particleContinue = null;
@@ -74,7 +75,7 @@ namespace RectUIParticle
             gameObject.transform.position = options.spawnPosition;
             spawnPosition = options.spawnPosition;
             rectPosition = options.rectPosition;
-            disapearPosition = options.disapearPosition;
+            sinkPosition = options.sinkPosition;
             randomOffset = options.randomOffset;
             speed = options.speed;
             amplitude = options.amplitude;
@@ -83,16 +84,17 @@ namespace RectUIParticle
             fadeOutDuration = options.fadeOutDuration;
             edgeName = options.edgeName;
             gameObject.name = options.name;
-            gameObject.transform.localScale = options.scale;
 
             SetParticleColor(options.color);
             SetParticleAlpha(0);
-            SetParticleSize(options.scale);
+            SetParticleSize(options.size);
         }
 
         public void Update()
         {
 
+
+            animaDuration += Time.deltaTime;
             if (motionType == MotionTypes.Init)
             {
                 SetParticleColor(options.color);
@@ -101,7 +103,6 @@ namespace RectUIParticle
             }
 
             bool isFadeMotion = motionType == MotionTypes.FadeIn || motionType == MotionTypes.FadeOut || motionType == MotionTypes.FadeFar;
-
 
             if (isFadeMotion)
             {
@@ -143,7 +144,7 @@ namespace RectUIParticle
             currentAlpha = GetParticleAlpha();
             currentPosition = gameObject.transform.position;
             currentScale = GetParticleSize();
-            motionDelta = disapearPosition - currentPosition;
+            motionDelta = sinkPosition - currentPosition;
             ease = 0f;
         }
 
@@ -157,7 +158,7 @@ namespace RectUIParticle
             if (motionType == MotionTypes.FadeIn)
             {
                 ease += Time.deltaTime / fadeInDuration;
-                ease = Mathf.Clamp(ease, 0, 1);
+                // ease = Mathf.Clamp(ease, 0, 1);
                 easeValue = CubicEaseOut(ease);
                 newAlpha = Mathf.Lerp(currentAlpha, 0.3f, ease);
                 // newSize = Vector3.Lerp(currentScale, options.scale, ease);
@@ -165,16 +166,16 @@ namespace RectUIParticle
             else if (motionType == MotionTypes.FadeOut)
             {
                 ease += Time.deltaTime / fadeOutDuration;
-                ease = Mathf.Clamp(ease, 0, 1);
-                easeValue = CubicEaseIn(ease);
+                // ease = Mathf.Clamp(ease, 0, 1);
+                easeValue = CubicEaseOut(ease);
                 newAlpha = Mathf.Lerp(currentAlpha, 0, ease);
                 // newSize = Vector3.Lerp(currentScale, Vector3.zero, ease);
             }
             else if (motionType == MotionTypes.FadeFar)
             {
                 ease += Time.deltaTime / fadeOutDuration;
-                ease = Mathf.Clamp(ease, 0, 1);
-                easeValue = CubicEaseIn(ease);
+                // ease = Mathf.Clamp(ease, 0, 1);
+                easeValue = CubicEaseOut(ease);
                 newAlpha = Mathf.Lerp(currentAlpha, 0, ease);
                 // newSize = Vector3.Lerp(currentScale, Vector3.zero, ease);
 
@@ -183,16 +184,24 @@ namespace RectUIParticle
             // ease  = Mathf.Clamp(ease, 0, 1);
             // Debug.Log("easeValue:" + easeValue);
 
-            if (ease < 1.0f)
+            if (ease <= 1.0f )
             {
                 Vector3 newPosition = Vector3.Lerp(currentPosition, currentPosition + motionDelta, easeValue);
+                // float randomValue = Mathf.PerlinNoise(ease * 100, ease * 100) - 0.5f;
+                // newPosition += randomValue * Vector3.one * 0.1f;
+                // float time = animaDuration;
+                // float sinX = Mathf.Sin(time * frequency);
+                // float xOffset = amplitude.x * sinX;
+                // float yOffset = amplitude.y * Mathf.Cos(time * frequency);
+                // float zOffset = amplitude.z * sinX;
+                // newPosition += new Vector3(xOffset, yOffset, zOffset) * speed;
+
                 SetParticlePosition(newPosition);
                 SetParticleAlpha(newAlpha);
                 // SetParticleSize(newSize);
             }
             else
             {
-
                 AfterFadeAnimation();
             }
 
@@ -202,11 +211,23 @@ namespace RectUIParticle
         {
             // return;
             floatingDuration += Time.deltaTime;
+
+            float smoothRatio =  floatingDuration > 1.0f ? 1.0f : floatingDuration; 
+
+            float randomValue = Mathf.PerlinNoise(floatingDuration, 0f) - 0.5f;
+
+            randomValue *= smoothRatio;
+            // Vector3 offset = randomValue / 3f * amplitude;
+            // Vector3 newPosition = currentPosition + offset;
+            // gameObject.transform.position = newPosition;
+
             float time = floatingDuration;
-            float xOffset = amplitude.x * Mathf.Sin(time * frequency);
-            float yOffset = amplitude.y * Mathf.Cos(time * frequency);
-            float zOffset = amplitude.z * Mathf.Sin(time * frequency);
-            Vector3 newPosition = currentPosition + new Vector3(xOffset, yOffset, zOffset) * speed;
+            float sinX = Mathf.Sin(time * frequency);
+            float xOffset = amplitude.x * sinX;
+            // float yOffset = amplitude.y * Mathf.Cos(time * frequency) *  Mathf.Sin(time * frequency);
+            float yOffset = amplitude.y * Mathf.Cos(time * frequency) * smoothRatio;
+            float zOffset = amplitude.z * sinX ;
+            Vector3 newPosition = currentPosition + new Vector3(xOffset, yOffset, zOffset) * speed + randomValue * Vector3.one * 0.1f;
             // 移动粒子
             gameObject.transform.position = newPosition;
         }
@@ -217,15 +238,16 @@ namespace RectUIParticle
             {
                 motionType = MotionTypes.Floating;
                 SetParticleAlpha(0.3f);
-                SetParticlePosition(rectPosition);
-                currentPosition = rectPosition;
+                // SetParticlePosition(rectPosition);
+                currentPosition = GetParticlePosition();
+                floatingDuration = 0f;
             }
             else if (motionType == MotionTypes.FadeFar)
             {
                 motionType = MotionTypes.Init;
                 SetParticleAlpha(0);
-                SetParticlePosition(disapearPosition);
-                currentPosition = disapearPosition;
+                SetParticlePosition(sinkPosition);
+                currentPosition = sinkPosition;
             }
             else if (motionType == MotionTypes.FadeOut)
             {
@@ -235,7 +257,7 @@ namespace RectUIParticle
                 currentPosition = spawnPosition;
             }
 
-            floatingDuration = 0f;
+
         }
 
         void SetParticleAlpha(float alpha)
@@ -343,6 +365,18 @@ namespace RectUIParticle
             return p * p * p;
         }
 
+
+        float EaseOutBack(float p)
+        {
+            float c1 = 1.70158f;
+            float c3 = c1 + 1f;
+            return 1f + c3 * Mathf.Pow(p - 1f, 3) + c1 * Mathf.Pow(p - 1f, 2);
+        }
+
+        float easeOutCirc(float x)
+        {
+            return Mathf.Sqrt(1 - Mathf.Pow(x - 1f, 2));
+        }
 
 
     }

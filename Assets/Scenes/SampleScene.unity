@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.18028378, g: 0.22571412, b: 0.30692285, a: 1}
+  m_IndirectSpecularColor: {r: 0.18028305, g: 0.22571313, b: 0.3069213, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -134,7 +134,7 @@ GameObject:
   - component: {fileID: 665485713}
   - component: {fileID: 665485712}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: RectParticleContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -154,23 +154,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   particlePrefab: {fileID: 2017524463001047048, guid: 966f33f052c7ea14087cd3998b9836b7, type: 3}
   density: 50
-  minSize: 0.01
-  maxSize: 0.12
+  sizeRange: {x: 0.01, y: 0.12}
   minColor: {r: 1, g: 1, b: 1, a: 1}
   maxColor: {r: 1, g: 1, b: 1, a: 1}
-  minAlpha: 0.3
-  maxAlpha: 1
-  speedMin: 0.1
-  speedMax: 0.3
-  amplitudeMin: 0.01
-  amplitudeMax: 1
-  frequencyMin: 0.1
-  frequencyMax: 1
-  fadeInDistance: 1
+  alphaRange: {x: 0.3, y: 1}
+  speedRange: {x: 0.1, y: 0.3}
+  amplitudeRange: {x: 0.01, y: 1}
+  frequencyRange: {x: 0.1, y: 1}
+  sinkDistance: 20
   center: {x: 0, y: 0, z: 2}
-  width: 6
-  height: 4
-  depth: 2
+  rotation: {x: 0, y: 0, z: 0}
+  rectWidth: 6
+  rectHeight: 4
+  rectDepth: 2
   strokeWidth: 0.5
   strokeStepCount: 10
 --- !u!4 &665485713

@@ -1,6 +1,6 @@
-using UnityEngine;
 using System.Collections;
-
+using UnityEngine;
+using Sirenix.OdinInspector;
 
 public class Point2DMeta
 {
@@ -8,7 +8,7 @@ public class Point2DMeta
     public string edgeName;
     public Vector3 spawnPosition;
     public Vector3 rectPosition;
-    public Vector3 disapearPosition;
+    public Vector3 sinkPosition;
 
 }
 
@@ -25,90 +25,129 @@ public class RectStepMeta
 namespace RectUIParticle
 {
 
-
-
-
-
-
     public class ParticleGroupController : MonoBehaviour
     {
+        [BoxGroup("粒子")]
+        [LabelText("Prefab")]
         public GameObject particlePrefab; // 粒子的预制体
-        // public GameObject particlePrefab2; // 粒子的预制体
-        // public GameObject particlePrefab3; // 粒子的预制体
+        [BoxGroup("粒子")]
+        [LabelText("密度")]
+        [Range(1, 200)]
         public int density = 50; // 粒子密度，表示每个单位面积上的粒子数量
-        public float minSize = 0.01f; // 最小粒子大小
-        public float maxSize = 0.12f; // 最大粒子大小
+        [BoxGroup("粒子")]
+        [LabelText("尺寸")]
+        [MinMaxSlider(0.01f, 0.2f)]
+        public Vector2 sizeRange = new Vector2(0.01f, 0.12f); // 粒子大小范围
+        [BoxGroup("粒子")]
+
+        [LabelText("最小色值")]
+
         public Color minColor = Color.white; // 最小颜色
+        [BoxGroup("粒子")]
+
+        [LabelText("最大色值")]
         public Color maxColor = Color.white; // 最大颜色
-        public float minAlpha = 0.3f; // 最小透明度
-        public float maxAlpha = 1.0f; // 最大透明度
-        public float speedMin = 0.1f; // 最小粒子移动速度
-        public float speedMax = 0.3f; // 最大粒子移动速度
-        public float amplitudeMin = 0.01f; // 最小运动振幅
-        public float amplitudeMax = 1.0f; // 最大运动振幅
-        public float frequencyMin = 0.1f; // 最小运动频率
-        public float frequencyMax = 1f; // 最大运动频率
+        [BoxGroup("粒子")]
 
-
-        public float fadeInDistance = 1f; // 淡入距离
+        [LabelText("透明度")]
+        [MinMaxSlider(0f, 1.0f)]
+        public Vector2 alphaRange = new Vector2(0.3f, 1.0f); // 透明度范围
+        [BoxGroup("运动")]
+        [LabelText("速度范围")]
+        [MinMaxSlider(0f, 1.0f)]
+        public Vector2 speedRange = new Vector2(0.1f, 0.3f); // 粒子移动速度范围
+        [BoxGroup("运动")]
+        [LabelText("振幅范围")]
+        [MinMaxSlider(0f, 3.0f)]
+        public Vector2 amplitudeRange = new Vector2(0.01f, 1.0f); // 粒子振幅范围
+        [BoxGroup("运动")]
+        [LabelText("频率范围")]
+        [MinMaxSlider(0f, 3.0f)]
+        public Vector2 frequencyRange = new Vector2(0.1f, 1.0f); // 粒子频率范围
+        [BoxGroup("运动")]
+        [LabelText("消失距离")]
+        [Range(0f, 50f)]
+        public float sinkDistance = 20f; // 淡入距离
 
         private Particle[] particles;
 
+
+        [BoxGroup("矩形形状")]
+        [LabelText("位置")]
         public Vector3 center = new Vector3(0f, 0f, 2f); // 矩形的中心点
-        public float width = 6f; // 矩形的宽度
-        public float height = 4f; // 矩形的高度
-        public float depth = 2f; // 矩形的深度
+        [BoxGroup("矩形形状")]
+        [LabelText("角度")]
+        public Vector3 rotation = new Vector3(0f, 0f, 0f); // 矩形的旋转角度
 
-
+        [BoxGroup("矩形形状")]
+        [LabelText("宽度")]
+        // [Range(0.1f, 10f)]
+        public float rectWidth = 6f; // 矩形的宽度
+        [BoxGroup("矩形形状")]
+        [LabelText("高度")]
+        // [Range(0.1f, 5f)]
+        public float rectHeight = 4f; // 矩形的高度
+        [BoxGroup("矩形形状")]
+        [LabelText("深度")]
+        // [Range(0.1f, 3f)]
+        public float rectDepth = 2f; // 矩形的深度
+        [BoxGroup("矩形形状")]
+        [LabelText("边宽")]
+        // [Range(0.1f, 1f)]
         public float strokeWidth = 0.5f; // 矩形边框的宽度
+        [BoxGroup("矩形形状")]
+        [LabelText("分层")]
         public int strokeStepCount = 10; // 矩形边框的分段数
-        private int numParticles = 1000; // 粒子数量
+
+
+        // [BoxGroup("Rect Shape"), HideLabel]
+        // public RectShapeStruct rectShape;
+
+        // [Serializable]
+        // public struct RectShapeStruct
+        // {
+        //     public float width;
+        //     public float height;
+        //     public float depth;
+        //     public float strokeWidth;
+        //     public int strokeStepCount;
+        // }
+
+
+        private int numParticles = 0; // 粒子数量
 
 
         void Start()
         {
-            numParticles = Mathf.RoundToInt(density * (width + height) * strokeWidth * depth); // 根据密度和矩形面积计算粒子数量
-            particles = new Particle[numParticles];
-            RectStepMeta[] steps = CalcRectStep(numParticles, strokeStepCount, width, height, strokeWidth); // 计算边框分段数
+            RectStepMeta[] steps = CalcRectStepSequence(strokeStepCount); // 计算边框分段数
+            for (int i = 0; i < steps.Length; i++)
+            {
+                numParticles += steps[i].total;
+                Debug.Log("step " + i + " total: " + steps[i].total);
+            }
 
             Debug.Log("numParticles: " + numParticles);
-            Debug.Log("steps.Length: " + steps.Length);
+
+            particles = new Particle[numParticles];
 
             int index = 0;
             for (int i = 0; i < steps.Length; i++)
             {
-                Debug.Log("step index: " + i);
-                Debug.Log("steps[i].total: " + steps[i].total);
-                for (int j = 0; j < steps[i].total; j++)
+                Point2DMeta[] points = CalcRandomRectPosition(steps[i].width, steps[i].height, steps[i].total);
+                for (int j = 0; j < points.Length; j++)
                 {
-                    Point2DMeta[] points = CalcRandomRectPosition(steps[i].width, steps[i].height, steps[i].total);
-                    for (int k = 0; k < points.Length; k++)
-                    {
-                        if (index >= numParticles)
-                        {
-                            break;
-                        }
-                        particles[index] = CreateParticle(index, points[k]);
-                        index++;
-                    }
+                    particles[index] = CreateParticle(index, points[j]);
+                    index++;
                 }
             }
 
-
-            // for (int i = 0; i < numParticles; i++)
-            // {
-            //     particles[i] = CreateParticle(i);
-            // }
         }
 
 
         Particle CreateParticle(int index, Point2DMeta point)
         {
 
-            Debug.Log("CreateParticle index: " + index);
-
             Particle particle = new Particle();
-
 
             string edgeName = point.edgeName;
 
@@ -127,26 +166,32 @@ namespace RectUIParticle
 
             options.spawnPosition = point.spawnPosition + center;
             options.rectPosition = point.rectPosition + center;
-            options.disapearPosition = point.disapearPosition + center;
+            options.sinkPosition = point.sinkPosition + center;
 
             options.randomOffset = Random.Range(0f, 2f * Mathf.PI);
-            options.speed = Random.Range(speedMin, speedMax);
 
             if (edgeName == "top" || edgeName == "bottom")
             {
-                options.amplitude = new Vector3(Random.Range(width / 5, width / 2), Random.Range(amplitudeMin, amplitudeMax), Random.Range(amplitudeMin, amplitudeMax));
-
+                options.amplitude = new Vector3(Random.Range(rectWidth / 5, rectWidth / 2), Random.Range(amplitudeRange.x, amplitudeRange.y), Random.Range(amplitudeRange.x, amplitudeRange.y));
             }
             else
             {
-                options.amplitude = new Vector3(Random.Range(amplitudeMin, amplitudeMax), Random.Range(height / 5, height / 2), Random.Range(amplitudeMin, amplitudeMax));
+                options.amplitude = new Vector3(Random.Range(amplitudeRange.x, amplitudeRange.y), Random.Range(rectHeight / 5, rectHeight / 2), Random.Range(amplitudeRange.x, amplitudeRange.y));
             }
-            options.frequency = Random.Range(frequencyMin, frequencyMax);
+            options.frequency = Random.Range(frequencyRange.x, frequencyRange.y);
+
             options.fadeInDuration = 2.0f;
             options.fadeOutDuration = 2.0f;
 
-            float randomSize = Random.Range(minSize, maxSize);
-            options.scale = new Vector3(randomSize, randomSize, randomSize);
+            float randomSize = Random.Range(sizeRange.x, sizeRange.y);
+            options.size = new Vector3(randomSize, randomSize, randomSize);
+            options.speed = Random.Range(speedRange.x, speedRange.y);
+
+            Debug.Log("particle size: " + options.size);
+            Debug.Log("particle speed: " + options.speed);
+            Debug.Log("particle amplitude: " + options.amplitude);
+            Debug.Log("particle frequency: " + options.frequency);
+
             particle.Init(options);
 
             return particle;
@@ -191,7 +236,14 @@ namespace RectUIParticle
 
             for (int i = 0; i < numParticles; i++)
             {
-                particles[i].Update();
+                if (particles[i] == null)
+                {
+                    continue;
+                }
+                else
+                {
+                    particles[i].Update();
+                }
             }
 
         }
@@ -216,21 +268,18 @@ namespace RectUIParticle
             p.particleContinue = StartCoroutine(ExecuteAfterDelay(delay, action));
         }
 
-        RectStepMeta[] CalcRectStep(int N, int L, float rectWidth, float rectHeight, float rectStrokeWidth)
+        RectStepMeta[] CalcRectStepSequence(int stepAmount)
         {
-            float interval = rectStrokeWidth / L;
-            RectStepMeta[] steps = new RectStepMeta[L];
-            float r = Mathf.Pow(N, 1f / L);
-            Debug.Log("r:" + r);
-            int a = (int)(N / Mathf.Pow(r, L));
-            Debug.Log("a:" + a);
-            for (int i = 0; i < L; i++)
+            int amount = Mathf.RoundToInt(density * (rectWidth + rectHeight) * strokeWidth * rectDepth); // 根据密度和矩形面积计算粒子数量
+            Debug.Log("target amount: " + amount);
+            int[] sequence = CalculateGeometricSequence(amount, stepAmount);
+            float interval = strokeWidth / stepAmount;
+            RectStepMeta[] steps = new RectStepMeta[stepAmount];
+            for (int i = 0; i < sequence.Length; i++)
             {
-                // int b = (int)Mathf.RoundToInt((a * Mathf.Pow(r, i)));
-                int b = (int)Mathf.RoundToInt(N / L);
-                Debug.Log("b:" + b);
+                int total = sequence[i];
                 RectStepMeta step = new RectStepMeta();
-                step.total = b;
+                step.total = total;
                 step.width = interval * i * 2f + rectWidth;
                 step.height = interval * i * 2f + rectHeight;
                 steps[i] = step;
@@ -250,23 +299,42 @@ namespace RectUIParticle
 
             Point2DMeta[] points = new Point2DMeta[n];
 
+
+            float radius = Mathf.Sqrt(width * width + height * height) / 2f;
+
+            float offset = 0.02f;
+
+
+
+
             // 生成上下边的点
             for (int i = 0; i < upperLowerCount; i++)
             {
                 float rectX = Random.Range(-width / 2f, width / 2f); // 随机横坐标
                 float rectY = (i % 2 == 0) ? -height / 2f : height / 2f; // 交替选择上边界或下边界作为纵坐标
 
-                float spawnX = rectX * 2f;
-                float spawnY = rectY * Random.Range(1.5f, 2f);
+                float theta = Mathf.Atan2(rectY, rectX);
+                if (theta < 0)
+                {
+                    theta += 2 * Mathf.PI;
+                }
+
+                float randomRadius = radius * 2 + Random.Range(0f, radius);
+                float spawnX = randomRadius * Mathf.Cos(theta);
+                float spawnY = randomRadius * Mathf.Sin(theta);
 
                 Point2DMeta p = new Point2DMeta();
 
-                p.rectPosition = new Vector3(rectX + Random.Range(-0.1f, 0.1f), rectY + Random.Range(-0.1f, 0.1f), Random.Range(-depth / 2f, depth / 2f));
-                p.spawnPosition = new Vector3(spawnX, spawnY, Random.Range(-depth / 2f, depth / 2f));
-                p.disapearPosition = new Vector3(spawnX * Random.Range(1.5f, 2f), spawnY * Random.Range(1.5f, 2f), Random.Range(10f, 20f));
+                p.rectPosition = new Vector3(rectX + Random.Range(-offset, offset), rectY + Random.Range(-offset, offset), Random.Range(-rectDepth / 2f, rectDepth / 2f));
+                p.spawnPosition = new Vector3(spawnX, spawnY, Random.Range(-rectDepth / 2f, rectDepth / 2f));
+                p.sinkPosition = new Vector3(spawnX * Random.Range(1.5f, 2f), spawnY * Random.Range(1.5f, 2f), Random.Range(10f, 20f));
                 p.edgeName = (i % 2 == 0) ? "bottom" : "top";
                 points[i] = p;
+
+
             }
+
+
 
             // 生成左右边的点
             for (int i = 0; i < leftRightCount; i++)
@@ -274,14 +342,21 @@ namespace RectUIParticle
                 float rectX = (i % 2 == 0) ? -width / 2f : width / 2f; // 交替选择左边界或右边界作为横坐标
                 float rectY = Random.Range(-height / 2f, height / 2f); // 随机纵坐标
 
-                float spawnX = rectX * Random.Range(1.5f, 2f);
-                float spawnY = rectY * 2f;
+                float theta = Mathf.Atan2(rectY, rectX);
+                if (theta < 0)
+                {
+                    theta += 2 * Mathf.PI;
+                }
+
+                float randomRadius = radius * 2 + Random.Range(0f, radius);
+                float spawnX = randomRadius * Mathf.Cos(theta);
+                float spawnY = randomRadius * Mathf.Sin(theta);
 
                 Point2DMeta p = new Point2DMeta();
 
-                p.rectPosition = new Vector3(rectX + Random.Range(-0.1f, 0.1f), rectY + Random.Range(-0.1f, 0.1f), Random.Range(-depth / 2f, depth / 2f));
-                p.spawnPosition = new Vector3(spawnX, spawnY, Random.Range(-depth / 2f, depth / 2f));
-                p.disapearPosition = new Vector3(spawnX * Random.Range(1.5f, 2f), spawnY * Random.Range(1.5f, 2f), Random.Range(10f, 20f));
+                p.rectPosition = new Vector3(rectX + Random.Range(-offset, offset), rectY + Random.Range(-offset, offset), Random.Range(-rectDepth / 2f, rectDepth / 2f));
+                p.spawnPosition = new Vector3(spawnX, spawnY, Random.Range(-rectDepth / 2f, rectDepth / 2f));
+                p.sinkPosition = new Vector3(spawnX * Random.Range(1.5f, 2f), spawnY * Random.Range(1.5f, 2f), Random.Range(10f, 20f));
 
                 p.edgeName = (i % 2 == 0) ? "left" : "right";
                 points[i + upperLowerCount] = p;
@@ -290,6 +365,30 @@ namespace RectUIParticle
 
             return points;
         }
+
+
+
+        static int[] CalculateGeometricSequence(float x, int l)
+        {
+            int[] sequence = new int[l];
+            float r = Mathf.Pow(x, 1.0f / l); // 公比
+
+            float a = x * (1f - r) / (1f - Mathf.Pow(r, l));
+            // Debug.Log("a: " + a);
+            // sequence[0] = Mathf.RoundToInt(a);
+            for (int i = 0; i < l; i++)
+            {
+                int v = Mathf.RoundToInt(x / Mathf.Pow(r, i));
+                if (v < 10)
+                {
+                    v = 10;
+                }
+                sequence[i] = v;
+            }
+
+            return sequence;
+        }
+
 
 
 
